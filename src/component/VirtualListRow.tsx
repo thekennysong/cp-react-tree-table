@@ -5,7 +5,6 @@ import TreeState from '../model/tree-state';
 import Row, { RowModel } from '../model/row';
 import { createRow } from '../util/row-creator';
 
-
 export type VirtualListRowProps = {
   data: Readonly<TreeState>;
   model: RowModel;
@@ -15,31 +14,39 @@ export type VirtualListRowProps = {
 
   index: number;
   relIndex: number;
-}
+};
 
 export default class VirtualListRow extends Component<VirtualListRowProps, {}> {
-  
   render() {
     const { model, columns, data, index, relIndex } = this.props;
     const row: Row = createRow(model, data, this.handleChange);
 
     return (
-      <div className={`cp_tree-table_row`}
-        style={{ ...STYLE_ROW, height: `${row.metadata.height}px` }}
+      <div
+        className={`cp_tree-table_row`}
+        style={{
+          ...STYLE_ROW,
+          height: `${row.metadata.height}px`,
+          background: row.data.isChecked
+            ? '#e6f7ff'
+            : row.data.upDownColor
+            ? row.data.upDownColor
+            : '',
+        }}
         data-index={index}
-        data-relindex={relIndex}>
-        
+        data-relindex={relIndex}
+      >
         {columns.map((column: ColumnProps, indexKey) => {
           return (
-            <CellWrapper key={indexKey}
+            <CellWrapper
+              key={indexKey}
               row={row}
-              renderCell={column.renderCell} 
-
+              renderCell={column.renderCell}
               grow={column.grow}
-              basis={column.basis}/>
+              basis={column.basis}
+            />
           );
         })}
-
       </div>
     );
   }
@@ -47,9 +54,8 @@ export default class VirtualListRow extends Component<VirtualListRowProps, {}> {
   private handleChange = (value: Readonly<TreeState>): void => {
     const { onChange } = this.props;
     onChange(value);
-  }
+  };
 }
-
 
 const STYLE_ROW: CSSProperties = {
   display: 'flex',
