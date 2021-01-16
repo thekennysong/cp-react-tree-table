@@ -1,4 +1,5 @@
 import React, { Component, Children, CSSProperties } from 'react';
+import memoizeOne from 'memoize-one';
 import Column, { ColumnProps } from './Column';
 import CellWrapper from './CellWrapper';
 import TreeState from '../model/tree-state';
@@ -18,8 +19,10 @@ export type VirtualListRowProps = {
 
 export default class VirtualListRow extends Component<VirtualListRowProps, {}> {
   render() {
+    console.log(this.props);
     const { model, columns, data, index, relIndex } = this.props;
-    const row: Row = createRow(model, data, this.handleChange);
+    const memoed = memoizeOne(createRow);
+    const row: Row = memoed(model, data, this.handleChange);
 
     return (
       <div
@@ -27,11 +30,6 @@ export default class VirtualListRow extends Component<VirtualListRowProps, {}> {
         style={{
           ...STYLE_ROW,
           height: `${row.metadata.height}px`,
-          background: row.data.isChecked
-            ? '#e6f7ff'
-            : row.data.upDownColor
-            ? row.data.upDownColor
-            : '',
         }}
         data-index={index}
         data-relindex={relIndex}
@@ -40,10 +38,21 @@ export default class VirtualListRow extends Component<VirtualListRowProps, {}> {
           return (
             <CellWrapper
               key={indexKey}
+              indexKey={indexKey}
               row={row}
               renderCell={column.renderCell}
               grow={column.grow}
               basis={column.basis}
+              columnTotal={columns.length}
+              background={
+                row.data.isChecked === 'checked'
+                  ? '#e6f7ff'
+                  : row.data.isChecked === 'childrenChecked'
+                  ? 'rgb(230 247 255 / .5)'
+                  : row.data.upDownColor
+                  ? row.data.upDownColor
+                  : ''
+              }
             />
           );
         })}

@@ -4,7 +4,7 @@ import { ColumnProps } from './Column';
 import TreeState from '../model/tree-state';
 import { RowModel } from '../model/row';
 import { createRefPolyfill } from '../util/ref-polyfill';
-
+import { throttle } from 'lodash';
 
 export type VirtualListProps = {
   data: Readonly<TreeState>;
@@ -14,14 +14,17 @@ export type VirtualListProps = {
 
   onChange: (value: Readonly<TreeState>) => void;
   onScroll: (scrollTop: number) => void;
-}
+};
 
 export type VirtualListState = {
-  topOffset: number,
-  overscanHeight: number,
-}
+  topOffset: number;
+  overscanHeight: number;
+};
 
-export default class VirtualList extends Component<VirtualListProps, VirtualListState> {
+export default class VirtualList extends Component<
+  VirtualListProps,
+  VirtualListState
+> {
   state = {
     topOffset: 0,
     overscanHeight: 100,
@@ -30,10 +33,11 @@ export default class VirtualList extends Component<VirtualListProps, VirtualList
   private containerRef = createRefPolyfill<HTMLDivElement>();
 
   render() {
+    console.log(this.props);
     const { data, columns, height, onChange } = this.props;
     const { topOffset, overscanHeight } = this.state;
 
-    const startYMax = Math.max(0, data.height - height - (overscanHeight * 2));
+    const startYMax = Math.max(0, data.height - height - overscanHeight * 2);
     const startY = Math.min(startYMax, Math.max(0, topOffset - overscanHeight));
     let startIndex = data.indexAtYPos(startY);
 
@@ -42,45 +46,52 @@ export default class VirtualList extends Component<VirtualListProps, VirtualList
 
     const contentTopOffset = data.yPosAtIndex(startIndex);
 
-    let visibleRowsData: Array<RowModel> = [], lastVisibleRowIndex;
-    TreeState.sliceRows(data, startIndex, endIndex).forEach((rowModel: RowModel) => {
-      if (rowModel.$state.isVisible) {
-        visibleRowsData.push(rowModel);
+    let visibleRowsData: Array<RowModel> = [],
+      lastVisibleRowIndex;
+    TreeState.sliceRows(data, startIndex, endIndex).forEach(
+      (rowModel: RowModel) => {
+        if (rowModel.$state.isVisible) {
+          visibleRowsData.push(rowModel);
+        }
       }
-    });
-
-    const visibleVLRows = visibleRowsData.map((rowModel: RowModel, relIndex: number) => {
-
-      return (
-        <VirtualListRow key={relIndex}
-          data={data}
-          model={rowModel}
-          columns={columns}
-          onChange={onChange}
-
-          index={rowModel.metadata.index}
-          relIndex={relIndex} />
-      );
-    });
+    );
+    console.log(visibleRowsData);
+    const visibleVLRows = visibleRowsData.map(
+      (rowModel: RowModel, relIndex: number) => {
+        return (
+          <VirtualListRow
+            key={relIndex}
+            data={data}
+            model={rowModel}
+            columns={columns}
+            onChange={onChange}
+            index={rowModel.metadata.index}
+            relIndex={relIndex}
+          />
+        );
+      }
+    );
 
     return (
-      <div className="cp_tree-table_viewport"
+      <div
+        className="cp_tree-table_viewport"
         style={{ ...STYLE_LIST, height: `${height}px` }}
         ref={this.containerRef}
-        onScroll={this.handleScroll}>
-
+        onScroll={this.handleScroll}
+      >
         <div style={{ ...STYLE_WRAPPER, height: `${data.height}px` }}>
-          <div style={{ ...STYLE_CONTENT, top: `${contentTopOffset}px` }}
-            className="cp_tree-table_mover">
+          <div
+            style={{ ...STYLE_CONTENT, top: `${contentTopOffset}px` }}
+            className="cp_tree-table_mover"
+          >
             {visibleVLRows}
           </div>
         </div>
-
       </div>
     );
   }
 
-  private handleScroll = () => {
+  private handleScroll = throttle(() => {
     if (this.containerRef.current != null) {
       const { scrollTop } = this.containerRef.current;
       const { onScroll } = this.props;
@@ -90,15 +101,14 @@ export default class VirtualList extends Component<VirtualListProps, VirtualList
         topOffset: scrollTop,
       });
     }
-  }
+  }, 100);
 
   scrollTo = (posY: number) => {
     if (this.containerRef.current != null) {
       this.containerRef.current.scrollTop = posY;
     }
-  }
+  };
 }
-
 
 const STYLE_LIST: CSSProperties = {
   overflow: 'auto',

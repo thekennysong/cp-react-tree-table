@@ -118,6 +118,7 @@ export default class TreeState {
       return result;
     }
     const rowModels = _processNode(data, 0, 0, 0, true);
+    console.log(rowModels);
     return new TreeState(rowModels);
   }
 
@@ -197,8 +198,8 @@ export default class TreeState {
     source: Readonly<TreeState>,
     from: number = 0,
     to: number = source.data.length,
-    depthLimit?: number,
-    expandAllClicked: boolean
+    expandAllClicked: boolean,
+    depthLimit?: number
   ): Readonly<TreeState> {
     const startRange = TreeState.sliceRows(source, 0, from);
     let _top: number = source.data[from].$state.top;
@@ -271,8 +272,98 @@ export default class TreeState {
       source,
       undefined,
       undefined,
-      depthLimit,
-      true
+      true,
+      depthLimit
+    );
+  }
+
+  private static _showRowsInRangeAccountLevel(
+    source: Readonly<TreeState>,
+    from: number = 0,
+    to: number = source.data.length,
+    expandAllClicked: boolean,
+    depthLimit?: number
+  ): Readonly<TreeState> {
+    const startRange = TreeState.sliceRows(source, 0, from);
+    let _top: number = source.data[from].$state.top;
+    const updatedRange = TreeState.sliceRows(source, from, to).map(
+      (model: RowModel, i: number): RowModel => {
+        if (model.metadata.depth > 0 && !model.$state.isVisible) {
+          // If a depthLimit value is set, only show nodes with a depth value less or equal
+          if (
+            depthLimit == null ||
+            (depthLimit != null && model.metadata.depth <= depthLimit)
+          ) {
+            model.$state.isVisible = true;
+          }
+          if (
+            model.data.type === 'transaction' ||
+            model.data.type === 'transactionEntity'
+          ) {
+            model.$state.isVisible = false;
+          }
+        }
+        model.$state.top = _top;
+        if (model.$state.isVisible) {
+          _top += model.metadata.height;
+
+          // Peek at the next row, if depth > currentDepth & it will be toggled to be visible,
+          // $state.isExpanded on the current row will be set to true
+          if (from + i + 1 < to) {
+            const nextRowModel = source.data[from + i + 1];
+            if (
+              (nextRowModel.metadata.depth > model.metadata.depth &&
+                depthLimit == null) ||
+              (depthLimit != null && nextRowModel.metadata.depth <= depthLimit)
+            ) {
+              model.$state.isExpanded = true;
+            }
+          }
+        }
+        if (model.data.type === 'transactionEntity' && expandAllClicked) {
+          model.$state.isExpanded = false;
+        }
+
+        if (model.data.isParent) {
+          model.$state.isExpanded = false;
+        }
+
+        return model;
+      }
+    );
+    const endRange = TreeState.sliceRows(source, to, source.data.length).map(
+      (model: RowModel): RowModel => {
+        model.$state.top = _top;
+        if (model.$state.isVisible) {
+          _top += model.metadata.height;
+        }
+        return model;
+      }
+    );
+
+    // Update $state.isExpanded for rows before the from↔to range
+    if (startRange.length > 0 && updatedRange.length > 0) {
+      if (
+        startRange[startRange.length - 1].metadata.depth <
+        updatedRange[0].metadata.depth
+      ) {
+        startRange[startRange.length - 1].$state.isExpanded = true;
+      }
+    }
+    console.log(expandAllClicked);
+    return new TreeState(startRange.concat(updatedRange, endRange));
+  }
+
+  static expandToAccountLevel(
+    source: Readonly<TreeState>,
+    depthLimit?: number
+  ): Readonly<TreeState> {
+    return TreeState._showRowsInRangeAccountLevel(
+      source,
+      undefined,
+      undefined,
+      true,
+      depthLimit
     );
   }
 
@@ -317,8 +408,8 @@ export default class TreeState {
       source,
       startIndex,
       endIndex,
-      undefined,
-      false
+      false,
+      undefined
     );
   }
 
@@ -353,8 +444,8 @@ export default class TreeState {
           source,
           model.metadata.index + 1,
           lastChildIndex,
-          currentDepth + 1,
-          false
+          false,
+          currentDepth + 1
         )
       : TreeState._hideRowsInRange(
           source,
