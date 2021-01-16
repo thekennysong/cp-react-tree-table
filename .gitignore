@@ -4,9 +4,6 @@
 # Testing
 /coverage
 
-# Builds
-build
-dist
 
 # Misc
 .DS_Store
