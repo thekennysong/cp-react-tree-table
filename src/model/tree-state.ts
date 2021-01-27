@@ -24,6 +24,8 @@ export default class TreeState {
         : data[data.length - 1].$state.top;
   }
 
+  // static updateChildren(data: Array<TreeNode>): Readonly<TreeState> { }
+
   static create(data: Array<TreeNode>): Readonly<TreeState> {
     function _processNode(
       children: Array<TreeNode>,
@@ -371,6 +373,69 @@ export default class TreeState {
     return TreeState._hideRowsInRange(source);
   }
 
+  private static _showRowsInRangeOG(
+    source: Readonly<TreeState>,
+    from: number = 0,
+    to: number = source.data.length,
+    depthLimit?: number
+  ): Readonly<TreeState> {
+    const startRange = TreeState.sliceRows(source, 0, from);
+    let _top: number = source.data[from].$state.top;
+    const updatedRange = TreeState.sliceRows(source, from, to).map(
+      (model: RowModel, i: number): RowModel => {
+        if (model.metadata.depth > 0 && !model.$state.isVisible) {
+          // If a depthLimit value is set, only show nodes with a depth value less or equal
+          if (
+            depthLimit == null ||
+            (depthLimit != null && model.metadata.depth <= depthLimit)
+          ) {
+            model.$state.isVisible = true;
+          }
+        }
+        model.$state.top = _top;
+        if (model.$state.isVisible) {
+          _top += model.metadata.height;
+
+          // Peek at the next row, if depth > currentDepth & it will be toggled to be visible,
+          // $state.isExpanded on the current row will be set to true
+          if (from + i + 1 < to) {
+            const nextRowModel = source.data[from + i + 1];
+            if (
+              (nextRowModel.metadata.depth > model.metadata.depth &&
+                depthLimit == null) ||
+              (depthLimit != null && nextRowModel.metadata.depth <= depthLimit)
+            ) {
+              model.$state.isExpanded = true;
+            }
+          }
+        }
+
+        return model;
+      }
+    );
+    const endRange = TreeState.sliceRows(source, to, source.data.length).map(
+      (model: RowModel): RowModel => {
+        model.$state.top = _top;
+        if (model.$state.isVisible) {
+          _top += model.metadata.height;
+        }
+        return model;
+      }
+    );
+
+    // Update $state.isExpanded for rows before the from↔to range
+    if (startRange.length > 0 && updatedRange.length > 0) {
+      if (
+        startRange[startRange.length - 1].metadata.depth <
+        updatedRange[0].metadata.depth
+      ) {
+        startRange[startRange.length - 1].$state.isExpanded = true;
+      }
+    }
+
+    return new TreeState(startRange.concat(updatedRange, endRange));
+  }
+
   static expandAncestors(
     source: Readonly<TreeState>,
     model: RowModel
@@ -404,13 +469,7 @@ export default class TreeState {
       }
     }
 
-    return TreeState._showRowsInRange(
-      source,
-      startIndex,
-      endIndex,
-      false,
-      undefined
-    );
+    return TreeState._showRowsInRangeOG(source, startIndex, endIndex);
   }
 
   static toggleChildren(
