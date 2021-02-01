@@ -279,6 +279,99 @@ export default class TreeState {
     );
   }
 
+  //expandStarsOnly
+
+  private static _showRowsInStarLevel(
+    source: Readonly<TreeState>,
+    from: number = 0,
+    to: number = source.data.length,
+    starsMapper: any,
+    depthLimit?: number
+  ): Readonly<TreeState> {
+    const startRange = TreeState.sliceRows(source, 0, from);
+    let _top: number = source.data[from].$state.top;
+    const updatedRange = TreeState.sliceRows(source, from, to).map(
+      (model: RowModel, i: number): RowModel => {
+        if (model.metadata.depth > 0 && !model.$state.isVisible) {
+          // If a depthLimit value is set, only show nodes with a depth value less or equal
+
+          const categoryId = model.data.categoryId
+            ? model.data.categoryId
+            : model.data.name;
+
+          const isStared = starsMapper.find(
+            (starObj: any) => starObj[categoryId]
+          );
+          if (isStared) {
+            model.$state.isVisible = true;
+          } else {
+            model.$state.isVisible = false;
+          }
+        }
+        model.$state.top = _top;
+        if (model.$state.isVisible) {
+          _top += model.metadata.height;
+
+          // Peek at the next row, if depth > currentDepth & it will be toggled to be visible,
+          // $state.isExpanded on the current row will be set to true
+          if (from + i + 1 < to) {
+            const nextRowModel = source.data[from + i + 1];
+            if (
+              (nextRowModel.metadata.depth > model.metadata.depth &&
+                depthLimit == null) ||
+              (depthLimit != null && nextRowModel.metadata.depth <= depthLimit)
+            ) {
+              model.$state.isExpanded = true;
+            }
+          }
+        }
+        if (isStared) {
+          model.$state.isExpanded = false;
+        }
+
+        if (model.data.isParent) {
+          model.$state.isExpanded = false;
+        }
+
+        return model;
+      }
+    );
+    const endRange = TreeState.sliceRows(source, to, source.data.length).map(
+      (model: RowModel): RowModel => {
+        model.$state.top = _top;
+        if (model.$state.isVisible) {
+          _top += model.metadata.height;
+        }
+        return model;
+      }
+    );
+
+    // Update $state.isExpanded for rows before the from↔to range
+    if (startRange.length > 0 && updatedRange.length > 0) {
+      if (
+        startRange[startRange.length - 1].metadata.depth <
+        updatedRange[0].metadata.depth
+      ) {
+        startRange[startRange.length - 1].$state.isExpanded = true;
+      }
+    }
+    console.log(expandAllClicked);
+    return new TreeState(startRange.concat(updatedRange, endRange));
+  }
+
+  static expandStarsOnly(
+    source: Readonly<TreeState>,
+    starsMapper: any
+  ): Readonly<TreeState> {
+    return TreeState._showRowsInStarLevel(
+      source,
+      undefined,
+      undefined,
+      starsMapper,
+      depthLimit
+    );
+  }
+
   private static _showRowsInRangeAccountLevel(
     source: Readonly<TreeState>,
     from: number = 0,

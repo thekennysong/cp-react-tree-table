@@ -9,7 +9,6 @@ import { throttle } from 'lodash';
 export type VirtualListProps = {
   data: Readonly<TreeState>;
   columns: Array<ColumnProps>;
-
   height: number;
 
   onChange: (value: Readonly<TreeState>) => void;
