@@ -15,9 +15,12 @@ export default class TreeState {
     private static _hideRowsInRange;
     private static _showRowsInRange;
     static expandAll(source: Readonly<TreeState>, depthLimit?: number): Readonly<TreeState>;
+    private static _showRowsInStarLevel;
+    static expandStarsOnly(source: Readonly<TreeState>, starsMapper: any): Readonly<TreeState>;
     private static _showRowsInRangeAccountLevel;
     static expandToAccountLevel(source: Readonly<TreeState>, depthLimit?: number): Readonly<TreeState>;
     static collapseAll(source: Readonly<TreeState>): Readonly<TreeState>;
+    private static _showRowsInRangeOG;
     static expandAncestors(source: Readonly<TreeState>, model: RowModel): Readonly<TreeState>;
     static toggleChildren(source: Readonly<TreeState>, model: RowModel): Readonly<TreeState>;
     static updateData(source: Readonly<TreeState>, model: RowModel, newData: RowData): Readonly<TreeState>;

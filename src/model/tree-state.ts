@@ -325,6 +325,14 @@ export default class TreeState {
             }
           }
         }
+
+        const categoryId = model.data.categoryId
+          ? model.data.categoryId
+          : model.data.name;
+
+        const isStared = starsMapper.find(
+          (starObj: any) => starObj[categoryId]
+        );
         if (isStared) {
           model.$state.isExpanded = false;
         }
@@ -355,7 +363,7 @@ export default class TreeState {
         startRange[startRange.length - 1].$state.isExpanded = true;
       }
     }
-    console.log(expandAllClicked);
+
     return new TreeState(startRange.concat(updatedRange, endRange));
   }
 
@@ -368,7 +376,7 @@ export default class TreeState {
       undefined,
       undefined,
       starsMapper,
-      depthLimit
+      undefined
     );
   }
 

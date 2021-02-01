@@ -478,7 +478,8 @@ var TreeState = /*#__PURE__*/function () {
     this.data = data;
     this.hasData = data.length > 0;
     this.height = data.length == 0 ? 0 : data[data.length - 1].$state.isVisible ? data[data.length - 1].$state.top + data[data.length - 1].metadata.height : data[data.length - 1].$state.top;
-  }
+  } // static updateChildren(data: Array<TreeNode>): Readonly<TreeState> { }
+
 
   _createClass(TreeState, [{
     key: "findRowModel",
@@ -756,6 +757,85 @@ var TreeState = /*#__PURE__*/function () {
     key: "expandAll",
     value: function expandAll(source, depthLimit) {
       return TreeState._showRowsInRange(source, undefined, undefined, true, depthLimit);
+    } //expandStarsOnly
+
+  }, {
+    key: "_showRowsInStarLevel",
+    value: function _showRowsInStarLevel(source) {
+      var from = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      var to = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : source.data.length;
+      var starsMapper = arguments.length > 3 ? arguments[3] : undefined;
+      var depthLimit = arguments.length > 4 ? arguments[4] : undefined;
+      var startRange = TreeState.sliceRows(source, 0, from);
+      var _top = source.data[from].$state.top;
+      var updatedRange = TreeState.sliceRows(source, from, to).map(function (model, i) {
+        if (model.metadata.depth > 0 && !model.$state.isVisible) {
+          // If a depthLimit value is set, only show nodes with a depth value less or equal
+          var _categoryId = model.data.categoryId ? model.data.categoryId : model.data.name;
+
+          var _isStared = starsMapper.find(function (starObj) {
+            return starObj[_categoryId];
+          });
+
+          if (_isStared) {
+            model.$state.isVisible = true;
+          } else {
+            model.$state.isVisible = false;
+          }
+        }
+
+        model.$state.top = _top;
+
+        if (model.$state.isVisible) {
+          _top += model.metadata.height; // Peek at the next row, if depth > currentDepth & it will be toggled to be visible,
+          // $state.isExpanded on the current row will be set to true
+
+          if (from + i + 1 < to) {
+            var nextRowModel = source.data[from + i + 1];
+
+            if (nextRowModel.metadata.depth > model.metadata.depth && depthLimit == null || depthLimit != null && nextRowModel.metadata.depth <= depthLimit) {
+              model.$state.isExpanded = true;
+            }
+          }
+        }
+
+        var categoryId = model.data.categoryId ? model.data.categoryId : model.data.name;
+        var isStared = starsMapper.find(function (starObj) {
+          return starObj[categoryId];
+        });
+
+        if (isStared) {
+          model.$state.isExpanded = false;
+        }
+
+        if (model.data.isParent) {
+          model.$state.isExpanded = false;
+        }
+
+        return model;
+      });
+      var endRange = TreeState.sliceRows(source, to, source.data.length).map(function (model) {
+        model.$state.top = _top;
+
+        if (model.$state.isVisible) {
+          _top += model.metadata.height;
+        }
+
+        return model;
+      }); // Update $state.isExpanded for rows before the from↔to range
+
+      if (startRange.length > 0 && updatedRange.length > 0) {
+        if (startRange[startRange.length - 1].metadata.depth < updatedRange[0].metadata.depth) {
+          startRange[startRange.length - 1].$state.isExpanded = true;
+        }
+      }
+
+      return new TreeState(startRange.concat(updatedRange, endRange));
+    }
+  }, {
+    key: "expandStarsOnly",
+    value: function expandStarsOnly(source, starsMapper) {
+      return TreeState._showRowsInStarLevel(source, undefined, undefined, starsMapper, undefined);
     }
   }, {
     key: "_showRowsInRangeAccountLevel",
@@ -833,6 +913,57 @@ var TreeState = /*#__PURE__*/function () {
       return TreeState._hideRowsInRange(source);
     }
   }, {
+    key: "_showRowsInRangeOG",
+    value: function _showRowsInRangeOG(source) {
+      var from = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      var to = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : source.data.length;
+      var depthLimit = arguments.length > 3 ? arguments[3] : undefined;
+      var startRange = TreeState.sliceRows(source, 0, from);
+      var _top = source.data[from].$state.top;
+      var updatedRange = TreeState.sliceRows(source, from, to).map(function (model, i) {
+        if (model.metadata.depth > 0 && !model.$state.isVisible) {
+          // If a depthLimit value is set, only show nodes with a depth value less or equal
+          if (depthLimit == null || depthLimit != null && model.metadata.depth <= depthLimit) {
+            model.$state.isVisible = true;
+          }
+        }
+
+        model.$state.top = _top;
+
+        if (model.$state.isVisible) {
+          _top += model.metadata.height; // Peek at the next row, if depth > currentDepth & it will be toggled to be visible,
+          // $state.isExpanded on the current row will be set to true
+
+          if (from + i + 1 < to) {
+            var nextRowModel = source.data[from + i + 1];
+
+            if (nextRowModel.metadata.depth > model.metadata.depth && depthLimit == null || depthLimit != null && nextRowModel.metadata.depth <= depthLimit) {
+              model.$state.isExpanded = true;
+            }
+          }
+        }
+
+        return model;
+      });
+      var endRange = TreeState.sliceRows(source, to, source.data.length).map(function (model) {
+        model.$state.top = _top;
+
+        if (model.$state.isVisible) {
+          _top += model.metadata.height;
+        }
+
+        return model;
+      }); // Update $state.isExpanded for rows before the from↔to range
+
+      if (startRange.length > 0 && updatedRange.length > 0) {
+        if (startRange[startRange.length - 1].metadata.depth < updatedRange[0].metadata.depth) {
+          startRange[startRange.length - 1].$state.isExpanded = true;
+        }
+      }
+
+      return new TreeState(startRange.concat(updatedRange, endRange));
+    }
+  }, {
     key: "expandAncestors",
     value: function expandAncestors(source, model) {
       if (!source.hasData) {
@@ -865,7 +996,7 @@ var TreeState = /*#__PURE__*/function () {
         }
       }
 
-      return TreeState._showRowsInRange(source, startIndex, endIndex, false, undefined);
+      return TreeState._showRowsInRangeOG(source, startIndex, endIndex);
     }
   }, {
     key: "toggleChildren",
