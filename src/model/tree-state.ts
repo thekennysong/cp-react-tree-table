@@ -292,19 +292,21 @@ export default class TreeState {
     let _top: number = source.data[from].$state.top;
     const updatedRange = TreeState.sliceRows(source, from, to).map(
       (model: RowModel, i: number): RowModel => {
+        const categoryId = model.data.categoryId
+          ? model.data.categoryId
+          : model.data.name;
+        const isStared = starsMapper.find(
+          (starObj: any) => starObj[categoryId]
+        );
         if (model.metadata.depth > 0 && !model.$state.isVisible) {
           // If a depthLimit value is set, only show nodes with a depth value less or equal
-
-          const categoryId = model.data.categoryId
-            ? model.data.categoryId
-            : model.data.name;
-
-          const isStared = starsMapper.find(
-            (starObj: any) => starObj[categoryId]
-          );
-          if (isStared) {
+          if (
+            depthLimit == null ||
+            (depthLimit != null && model.metadata.depth <= depthLimit)
+          ) {
             model.$state.isVisible = true;
-          } else {
+          }
+          if (!isStared || model.data.type === 'transaction') {
             model.$state.isVisible = false;
           }
         }
@@ -325,19 +327,7 @@ export default class TreeState {
             }
           }
         }
-
-        const categoryId = model.data.categoryId
-          ? model.data.categoryId
-          : model.data.name;
-
-        const isStared = starsMapper.find(
-          (starObj: any) => starObj[categoryId]
-        );
         if (isStared) {
-          model.$state.isExpanded = false;
-        }
-
-        if (model.data.isParent) {
           model.$state.isExpanded = false;
         }
 
@@ -363,7 +353,7 @@ export default class TreeState {
         startRange[startRange.length - 1].$state.isExpanded = true;
       }
     }
-
+    //console.log(expandAllClicked);
     return new TreeState(startRange.concat(updatedRange, endRange));
   }
 

@@ -776,17 +776,18 @@ var TreeState = /*#__PURE__*/function () {
       var startRange = TreeState.sliceRows(source, 0, from);
       var _top = source.data[from].$state.top;
       var updatedRange = TreeState.sliceRows(source, from, to).map(function (model, i) {
+        var categoryId = model.data.categoryId ? model.data.categoryId : model.data.name;
+        var isStared = starsMapper.find(function (starObj) {
+          return starObj[categoryId];
+        });
+
         if (model.metadata.depth > 0 && !model.$state.isVisible) {
           // If a depthLimit value is set, only show nodes with a depth value less or equal
-          var _categoryId = model.data.categoryId ? model.data.categoryId : model.data.name;
-
-          var _isStared = starsMapper.find(function (starObj) {
-            return starObj[_categoryId];
-          });
-
-          if (_isStared) {
+          if (depthLimit == null || depthLimit != null && model.metadata.depth <= depthLimit) {
             model.$state.isVisible = true;
-          } else {
+          }
+
+          if (!isStared || model.data.type === 'transaction') {
             model.$state.isVisible = false;
           }
         }
@@ -806,16 +807,7 @@ var TreeState = /*#__PURE__*/function () {
           }
         }
 
-        var categoryId = model.data.categoryId ? model.data.categoryId : model.data.name;
-        var isStared = starsMapper.find(function (starObj) {
-          return starObj[categoryId];
-        });
-
         if (isStared) {
-          model.$state.isExpanded = false;
-        }
-
-        if (model.data.isParent) {
           model.$state.isExpanded = false;
         }
 
@@ -835,7 +827,8 @@ var TreeState = /*#__PURE__*/function () {
         if (startRange[startRange.length - 1].metadata.depth < updatedRange[0].metadata.depth) {
           startRange[startRange.length - 1].$state.isExpanded = true;
         }
-      }
+      } //console.log(expandAllClicked);
+
 
       return new TreeState(startRange.concat(updatedRange, endRange));
     }
