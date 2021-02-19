@@ -1102,7 +1102,7 @@
             grow: column.grow,
             basis: column.basis,
             columnTotal: columns.length,
-            background: row.data.isChecked === 'checked' ? '#e6f7ff' : row.data.isChecked === 'childrenChecked' ? 'rgb(230 247 255 / .5)' : row.data.upDownColor ? row.data.upDownColor : ''
+            background: !row.data.isStarReport || row.data.isShow ? row.data.isChecked === 'checked' ? '#e6f7ff' : row.data.isChecked === 'childrenChecked' ? 'rgb(230 247 255 / .5)' : row.data.upDownColor ? row.data.upDownColor : '' : ''
           });
         }));
       }
